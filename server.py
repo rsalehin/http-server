@@ -13,7 +13,7 @@ def main():
 
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    server_socket.bind('localhost', 4221)
+    server_socket.bind(('localhost', 4221))
     server_socket.listen()
     print("Server is listening on port 4221...")
 
@@ -22,6 +22,11 @@ def main():
         # and the address of the client. 
         connection, address = server_socket.accept()
         print(f"Accepted a new connection from {address}")
+        # Sending back response to the client
+        while connection:
+            http_response = b"HTTP/1.1 200 OK\r\n\r\n"
+            connection.sendall(http_response)
+            print(f"Sent '200 OK' response to {address}")
 
 if __name__=="__main__":
     main()
