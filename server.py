@@ -1,7 +1,9 @@
 import socket
 import threading
+import os
+import sys
 
-def handle_connection(connection):
+def handle_connection(connection, directory):
     print(f"Handling connection in a new thread.")
         
     with connection:
@@ -46,6 +48,22 @@ def handle_connection(connection):
                                     
                     )
             http_response = http_response_str.encode()
+        elif path.startswith("/files/"):
+            filename = path.split('/files/')[1]
+            file_path = os.path.join(directory, filename)
+            try:
+                with open(file_path, 'rb') as f:
+                    body = f.read()
+                http_response_str = (
+                    f"HTTP/1.1 200 OK\r\n"
+                    f"Content-Type: application/octet-stream\r\n"
+                    f"Content-Length: {len(body)}\r\n"
+                    f"\r\n"
+                )
+                http_response = http_response_str.encode() + body 
+            except FileNotFoundError:
+                http_response = b"HTTP/1.1 404 Not Found\r\n\r\n"
+                             
         else:
             http_response = b"HTTP/1.1 404 Not Found\r\n\r\n"
 
@@ -68,13 +86,18 @@ def main():
     server_socket.bind(('localhost', 4221))
     server_socket.listen()
     print("Server is listening on port 4221...")
+    # Parse command-line arguments
+    directory = ""
+    if len(sys.argv) > 2 and sys.argv[1] == '--directory':
+        directory = sys.argv[2]
+        print(f"Serving files from directory: {directory}")
     while True:
             # When a client connects, accept() returns a tuple, a new socket object
             # and the address of the client. 
             connection, address = server_socket.accept()
             print(f"Accepted a new connection from {address}")
             # Sending back response to the client
-            thread = threading.Thread(target = handle_connection, args=(connection,))
+            thread = threading.Thread(target = handle_connection, args=(connection, directory))
             thread.start()
     
 
