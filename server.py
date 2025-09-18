@@ -25,10 +25,22 @@ def main():
         # Sending back response to the client
         with connection:
             request_data = connection.recv(1024)
+            if not request_data:
+                continue
             decoded_request = request_data.decode('utf-8')
+            request_lines = decoded_request.split('\r\n')
             print(f"Request Received: \n{decoded_request}")
-            request_line = decoded_request.split('\r\n')[0]
+            request_line = request_lines[0]
             path = request_line.split(' ')[1]
+
+            # Parse headers into a dictionary 
+            headers = {}
+            for line in request_lines[1:]:
+                if line:
+                    #Everything before the first : goes into key.
+                    #Everything after the first : goes into value.
+                    key, value = line.split(": ", 1)
+                    headers[key.lower()] = value 
 
             if path =='/':
                 http_response = b"HTTP/1.1 200 OK\r\n\r\n"
@@ -42,13 +54,24 @@ def main():
                     f"{body}"
                 )
                 http_response = http_response_str.encode()
+            elif path == "/user-agent":
+                body = headers.get('user-agent', 'Unknown')
+                http_response_str = (
+                    f"HTTP/1.1 200 OK\r\n"
+                    f"Content-Type: text/plain\r\n"
+                    f"Content-Length: {len(body)}\r\n"
+                    f"\r\n"
+                    f"{body}"
+                                
+                )
+                http_response = http_response_str.encode()
             else:
                 http_response = b"HTTP/1.1 404 Not Found\r\n\r\n"
 
 
             
             connection.sendall(http_response)
-            print(f"Responded to path {path}")
+            print(f"Responded to path {path} and closed connection.")
 
 if __name__=="__main__":
     main()
