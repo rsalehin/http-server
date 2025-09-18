@@ -24,9 +24,21 @@ def main():
         print(f"Accepted a new connection from {address}")
         # Sending back response to the client
         while connection:
-            http_response = b"HTTP/1.1 200 OK\r\n\r\n"
+            request_data = connection.recv(1024)
+            decoded_request = request_data.decode('utf-8')
+            print(f"Request Received: \n{decoded_request}")
+            request_line = decoded_request.split('\r\n')[0]
+            path = request_line.split(' ')[1]
+
+            if path =='/':
+                http_response = b"HTTP/1.1 200 OK\r\n\r\n"
+            else:
+                http_response = b"HTTP/1.1 404 Not Found\r\n\r\n"
+
+
+            
             connection.sendall(http_response)
-            print(f"Sent '200 OK' response to {address}")
+            print(f"Responded to path {path}")
 
 if __name__=="__main__":
     main()
