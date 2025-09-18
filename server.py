@@ -23,7 +23,7 @@ def main():
         connection, address = server_socket.accept()
         print(f"Accepted a new connection from {address}")
         # Sending back response to the client
-        while connection:
+        with connection:
             request_data = connection.recv(1024)
             decoded_request = request_data.decode('utf-8')
             print(f"Request Received: \n{decoded_request}")
@@ -32,6 +32,16 @@ def main():
 
             if path =='/':
                 http_response = b"HTTP/1.1 200 OK\r\n\r\n"
+            elif path.startswith("/echo/"):
+                body = path.split('/echo/')[1]
+                http_response_str = (
+                    f"HTTP/1.1 200 OK\r\n"
+                    f"Content-Type: text/plain\r\n"
+                    f"Content-Length: {len(body)}\r\n"
+                    f"\r\n"
+                    f"{body}"
+                )
+                http_response = http_response_str.encode()
             else:
                 http_response = b"HTTP/1.1 404 Not Found\r\n\r\n"
 
