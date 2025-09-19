@@ -32,13 +32,16 @@ def handle_connection(connection, directory):
             http_response = b"HTTP/1.1 200 OK\r\n\r\n"
         elif path.startswith("/echo/"):
             body = path.split('/echo/')[1]
-            http_response_str = (
-                        f"HTTP/1.1 200 OK\r\n"
-                        f"Content-Type: text/plain\r\n"
-                        f"Content-Length: {len(body)}\r\n"
-                        f"\r\n"
-                        f"{body}"
-                    )
+            response_headers = [
+                "HTTP/1.1 200 OK",
+                "Content-Type: text/plain",
+                f"Content-length: {len(body)}"
+            ]
+            accept_encoding = headers.get('accept-encoding', '')
+            if 'gzip' in [encoding.strip() for encoding in accept_encoding.split(',')]:
+                response_headers.append("Content-Encoding: gzip")
+            http_header_str = "\r\n".join(response_headers)
+            http_response_str = f"{http_header_str}\r\n\r\n{body}"
             http_response = http_response_str.encode()
         elif path == "/user-agent":
             body = headers.get('user-agent', 'Unknown')
@@ -102,6 +105,7 @@ def main():
     if len(sys.argv) > 2 and sys.argv[1] == '--directory':
         directory = sys.argv[2]
         print(f"Serving files from directory: {directory}")
+    
     while True:
             # When a client connects, accept() returns a tuple, a new socket object
             # and the address of the client. 
