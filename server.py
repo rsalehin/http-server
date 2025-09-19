@@ -7,18 +7,21 @@ def handle_connection(connection, directory):
     print(f"Handling connection in a new thread.")
         
     with connection:
-        request_data = connection.recv(1024)
+        request_data = connection.recv(4096)
         if not request_data:
             return 
         decoded_request = request_data.decode('utf-8')
         request_lines = decoded_request.split('\r\n')
         print(f"Request Received: \n{decoded_request}")
         request_line = request_lines[0]
+        method = request_line.split(' ')[0]
         path = request_line.split(' ')[1]
 
         # Parse headers into a dictionary 
         headers = {}
-        for line in request_lines[1:]:
+        body_start_index = decoded_request.find("\r\n\r\n")
+        header_part = decoded_request[:body_start_index]
+        for line in header_part.split('\r\n')[1:]:
             if line:
                 #Everything before the first : goes into key.
                 #Everything after the first : goes into value.
@@ -51,19 +54,27 @@ def handle_connection(connection, directory):
         elif path.startswith("/files/"):
             filename = path.split('/files/')[1]
             file_path = os.path.join(directory, filename)
-            try:
-                with open(file_path, 'rb') as f:
-                    body = f.read()
-                http_response_str = (
-                    f"HTTP/1.1 200 OK\r\n"
-                    f"Content-Type: application/octet-stream\r\n"
-                    f"Content-Length: {len(body)}\r\n"
-                    f"\r\n"
-                )
-                http_response = http_response_str.encode() + body 
-            except FileNotFoundError:
-                http_response = b"HTTP/1.1 404 Not Found\r\n\r\n"
-                             
+            
+            if method == 'GET': 
+                try:
+                    with open(file_path, 'rb') as f:
+                        body = f.read()
+                    http_response_str = (
+                        f"HTTP/1.1 200 OK\r\n"
+                        f"Content-Type: application/octet-stream\r\n"
+                        f"Content-Length: {len(body)}\r\n"
+                        f"\r\n"
+                    )
+                    http_response = http_response_str.encode() + body 
+                except FileNotFoundError:
+                    http_response = b"HTTP/1.1 404 Not Found\r\n\r\n"
+                                
+            elif method == 'POST':
+                body_content = decoded_request[body_start_index + 4 :]
+                with open(file_path, 'wb') as f:
+                    f.write(body_content.encode())
+                http_response = b"HTTP/1.1 201 Created\r\n\r\n"
+            
         else:
             http_response = b"HTTP/1.1 404 Not Found\r\n\r\n"
 

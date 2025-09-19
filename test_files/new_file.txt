@@ -1,0 +1,1 @@
+So, I'm sending a packet of data from the client side, and specifying the endpoint, files and then a file name, and the server is parsing information and putting it in the specified file.
