@@ -32,6 +32,7 @@ def handle_connection(connection, directory):
                 if line:
                     key, value = line.split(': ', 1)
                     headers[key.lower()] = value
+            should_close = headers.get("connection", '').lower() == 'close'
 
             if path == "/":
                 http_response = b"HTTP/1.1 200 OK\r\n\r\n"
@@ -77,7 +78,10 @@ def handle_connection(connection, directory):
                 http_response = b"HTTP/1.1 404 Not Found\r\n\r\n"
             
             connection.sendall(http_response)
-            print(f"Responded to {method} request for '{path}'. Waiting for next request...")
+            print(f"Responded to {method} request for '{path}'.")
+            if should_close:
+                print("'Connection: close' received. Closing connection.")
+                break
 
     except Exception as e:
         print(f"An error occurred: {e}")
